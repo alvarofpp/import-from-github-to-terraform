@@ -36,7 +36,7 @@ jq -c '.[]' "${TEAMS_FILE}" | while read -r team; do
   TEAM_PRIVACY=$(echo "${team}" | jq -r '.privacy // "secret"') \
   TEAM_PARENT_ID=$(echo "${team}" | jq -r '.parent.id // null') \
   envsubst < /opt/templates/github_team.template > "${TERRAFORM_TEAM_FILE}"
-  echo "terraform import -var-file=main.tfvars module.members.github_team.${TERRAFORM_RESOURCE_NAME} ${TEAM_NAME}" >> "${IMPORT_FILE}"
+  echo "terraform import -var-file=main.tfvars module.teams.github_team.${TERRAFORM_RESOURCE_NAME} ${TEAM_NAME}" >> "${IMPORT_FILE}"
 
   ID=${ID} \
   ORG=${ORG} \

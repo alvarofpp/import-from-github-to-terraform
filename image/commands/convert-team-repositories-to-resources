@@ -12,7 +12,7 @@ TERRAFORM_TEAM_FILE=${TERRAFORM_TEAM_FILE:-''}
 GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-''}
 TERRAFORM_TEAM_RESOURCE_NAME=${TERRAFORM_TEAM_RESOURCE_NAME:-''}
 API_URL_PREFIX=${API_URL_PREFIX:-'https://api.github.com'}
-IMPORT_FILE=/opt/resources/imports_team.txt
+IMPORT_FILE=/opt/resources/imports_teams.txt
 TEAM_DIR="${ID_DIR}/teams/${TEAM_SLUG}"
 TEAM_REPOSITORIES_FILE="${TEAM_DIR}/repositories.json"
 mkdir -p "${TEAM_DIR}"
@@ -43,11 +43,12 @@ jq -s '.[]' "${TEAM_DIR}"/repositories/*.json > "${TEAM_REPOSITORIES_FILE}"
 jq -c '.[]' "${TEAM_REPOSITORIES_FILE}" | while read -r repository; do
   TEAM_RESOURCE=${TERRAFORM_TEAM_RESOURCE_NAME}
   TEAM_REPOSITORY_REPOSITORY=$(echo "${repository}" | jq -r '.name')
-  TERRAFORM_RESOURCE_NAME=$(echo "${TEAM_REPOSITORY_REPOSITORY}" | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
+  TERRAFORM_RESOURCE_NAME_BASE=$(echo "${TEAM_REPOSITORY_REPOSITORY}" | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
 
   echo "${repository}" | jq -r '.permissions | keys[]' | while read -r permissionKey; do
     TEAM_REPOSITORY_PERMISSION=$(echo "${repository}" | jq -r ".permissions.${permissionKey} // false")
     if [ "${TEAM_REPOSITORY_PERMISSION}" = true ]; then
+      TERRAFORM_RESOURCE_NAME="${TEAM_RESOURCE}_${TERRAFORM_RESOURCE_NAME_BASE}_${permissionKey}"
       echo ">>> Converting ${TEAM_REPOSITORY_REPOSITORY} ${permissionKey} to Terraform resource (teams/${TERRAFORM_TEAM_RESOURCE_NAME}.tf)..."
 
       TERRAFORM_RESOURCE_NAME=${TERRAFORM_RESOURCE_NAME} \
@@ -55,7 +56,7 @@ jq -c '.[]' "${TEAM_REPOSITORIES_FILE}" | while read -r repository; do
       TEAM_REPOSITORY_REPOSITORY=${TEAM_REPOSITORY_REPOSITORY} \
       TEAM_REPOSITORY_PERMISSION=${permissionKey} \
       envsubst < /opt/templates/github_team_repository.template >> "${TERRAFORM_TEAM_FILE}"
-      echo "terraform import -var-file=main.tfvars module.members.github_team_repository.${TERRAFORM_RESOURCE_NAME} ${TEAM_ID}:${TEAM_REPOSITORY_REPOSITORY}" >> "${IMPORT_FILE}"
+      echo "terraform import -var-file=main.tfvars module.teams.github_team_repository.${TERRAFORM_RESOURCE_NAME} ${TEAM_ID}:${TEAM_REPOSITORY_REPOSITORY}" >> "${IMPORT_FILE}"
     fi
   done
 done
