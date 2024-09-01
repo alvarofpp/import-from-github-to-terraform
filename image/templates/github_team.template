@@ -1,0 +1,6 @@
+resource "github_team" "${TERRAFORM_RESOURCE_NAME}" {
+  name           = "${TEAM_NAME}"
+  description    = ${TEAM_DESCRIPTION}
+  privacy        = "${TEAM_PRIVACY}"
+  parent_team_id = ${TEAM_PARENT_ID}
+}

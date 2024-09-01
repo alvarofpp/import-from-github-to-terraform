@@ -1,21 +1,22 @@
-FROM alpine:3.19.0
+FROM alpine:3.20.2
 
 # Set environment variables
 ENV HOME=/root
-ENV WORKDIR=/app
 
 # Install packages
 RUN apk --no-cache add findutils  \
     curl \
     bash-completion \
-    git
-RUN git config --global --add safe.directory /app
+    jq \
+    envsubst
 
-# Install apps here
+# Directory to save resources files
+RUN mkdir -p /opt/resources
+RUN mkdir -p /opt/templates
+COPY ./templates/* /opt/templates/
 
 # Adds shell commands
 COPY ./commands/* /usr/bin/
 
-# Workdir and entrypoint
-WORKDIR ${WORKDIR}
+# Entrypoint
 ENTRYPOINT ["docker-entrypoint"]

@@ -1,0 +1,5 @@
+resource "github_team_membership" "${TERRAFORM_RESOURCE_NAME}" {
+  team_id  = github_team.${TEAM_RESOURCE}.id
+  username = "${TEAM_MEMBERSHIP_USERNAME}"
+  role     = "${TEAM_MEMBERSHIP_ROLE}"
+}

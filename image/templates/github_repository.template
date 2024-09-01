@@ -1,0 +1,34 @@
+resource "github_repository" "${TERRAFORM_RESOURCE_NAME}" {
+  name                        = "${REPOSITORY_NAME}"
+  description                 = ${REPOSITORY_DESCRIPTION}
+  homepage_url                = "${REPOSITORY_HOMEPAGE_URL}"
+  visibility                  = "${REPOSITORY_VISIBILITY}"
+  has_issues                  = ${REPOSITORY_HAS_ISSUES}
+  has_discussions             = ${REPOSITORY_HAS_DISCUSSIONS}
+  has_projects                = ${REPOSITORY_HAS_PROJECTS}
+  has_wiki                    = ${REPOSITORY_HAS_WIKI}
+  is_template                 = ${REPOSITORY_IS_TEMPLATE}
+  allow_merge_commit          = ${REPOSITORY_ALLOW_MERGE_COMMIT}
+  allow_squash_merge          = ${REPOSITORY_ALLOW_SQUASH_MERGE}
+  allow_rebase_merge          = ${REPOSITORY_ALLOW_REBASE_MERGE}
+  allow_auto_merge            = ${REPOSITORY_ALLOW_AUTO_MERGE}
+  squash_merge_commit_title   = "${REPOSITORY_SQUASH_MERGE_COMMIT_TITLE}"
+  squash_merge_commit_message = "${REPOSITORY_SQUASH_MERGE_COMMIT_MESSAGE}"
+  merge_commit_title          = "${REPOSITORY_MERGE_COMMIT_TITLE}"
+  merge_commit_message        = "${REPOSITORY_MERGE_COMMIT_MESSAGE}"
+  delete_branch_on_merge      = ${REPOSITORY_DELETE_BRANCH_ON_MERGE}
+  web_commit_signoff_required = ${REPOSITORY_WEB_COMMIT_SIGNOFF_REQUIRED}
+  has_downloads               = ${REPOSITORY_HAS_DOWNLOADS}
+  archived                    = ${REPOSITORY_ARCHIVED}
+  topics                      = ${REPOSITORY_TOPICS}
+}
+
+resource "github_branch" "${TERRAFORM_RESOURCE_NAME}_branch_${REPOSITORY_DEFAULT_BRANCH}" {
+  repository = github_repository.${TERRAFORM_RESOURCE_NAME}.name
+  branch     = "${REPOSITORY_DEFAULT_BRANCH}"
+}
+
+resource "github_branch_default" "${TERRAFORM_RESOURCE_NAME}_branch_default" {
+  repository = github_repository.${TERRAFORM_RESOURCE_NAME}.name
+  branch     = github_branch.${TERRAFORM_RESOURCE_NAME}_branch_${REPOSITORY_DEFAULT_BRANCH}.branch
+}

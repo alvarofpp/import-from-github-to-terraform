@@ -1,0 +1,38 @@
+#!/bin/bash
+if [[ "${DEBUG}" == "true" ]]; then
+  set -x
+fi
+
+ID=${ID:-''}
+ID_DIR="/tmp/logs/${ID}"
+mkdir -p "${ID_DIR}"
+mkdir -p "${ID_DIR}/repositories"
+echo "Starting to get repositories... (ID=${ID})"
+
+ORG=${ORG:-''}
+GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-''}
+API_URL_PREFIX=${API_URL_PREFIX:-'https://api.github.com'}
+API_URL="${API_URL_PREFIX}/user/repos?affiliation=owner&per_page=100&page="
+if [ -n "$ORG" ]; then
+  API_URL="${API_URL_PREFIX}/orgs/${ORG}/repos?per_page=100&page="
+fi
+
+page=1
+has_more=true
+while [ "$has_more" = true ]; do
+  repos=$(curl -sSL \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${GITHUB_ACCESS_TOKEN}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${API_URL}${page}")
+
+  if [ "$(echo "${repos}" | jq 'length')" -eq 0 ]; then
+    has_more=false
+  else
+    echo "${repos}" > "${ID_DIR}/repositories/page_${page}.json"
+    ((page++))
+  fi
+done
+
+jq -s '.[]' "${ID_DIR}"/repositories/*.json > "${ID_DIR}/repositories.json"
+ID=${ID} convert-repositories-to-resources

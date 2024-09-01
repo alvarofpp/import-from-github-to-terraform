@@ -1,0 +1,62 @@
+#!/bin/bash
+if [[ "${DEBUG}" == "true" ]]; then
+  set -x
+fi
+
+ID=${ID:-''}
+ID_DIR="/tmp/logs/${ID}"
+ORG=${ORG:-''}
+TEAM_ID=${TEAM_ID:-''}
+TEAM_SLUG=${TEAM_SLUG:-''}
+TERRAFORM_TEAM_FILE=${TERRAFORM_TEAM_FILE:-''}
+GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-''}
+TERRAFORM_TEAM_RESOURCE_NAME=${TERRAFORM_TEAM_RESOURCE_NAME:-''}
+API_URL_PREFIX=${API_URL_PREFIX:-'https://api.github.com'}
+IMPORT_FILE=/opt/resources/imports_team.txt
+TEAM_DIR="${ID_DIR}/teams/${TEAM_SLUG}"
+TEAM_MEMBERS_FILE="${TEAM_DIR}/members.json"
+mkdir -p "${TEAM_DIR}"
+mkdir -p "${TEAM_DIR}/members"
+
+page=1
+has_more=true
+while [ "$has_more" = true ]; do
+  members=$(curl -sSL \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${GITHUB_ACCESS_TOKEN}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${API_URL_PREFIX}/orgs/${ORG}/teams/${TEAM_SLUG}/members?per_page=100&page=${page}")
+
+  if [ "$(echo "${members}" | jq 'length')" -eq 0 ]; then
+    has_more=false
+  else
+    echo "${members}" > "${TEAM_DIR}/members/page_${page}.json"
+    ((page++))
+  fi
+done
+
+if [ -z "$(ls -A "${TEAM_DIR}"/members)" ]; then
+  exit 0
+fi
+
+jq -s '.[]' "${TEAM_DIR}"/members/*.json > "${TEAM_MEMBERS_FILE}"
+jq -c '.[]' "${TEAM_MEMBERS_FILE}" | while read -r member; do
+  MEMBER_USERNAME=$(echo "${member}" | jq -r '.login')
+  membership=$(curl -sSL \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${GITHUB_ACCESS_TOKEN}" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${API_URL_PREFIX}/orgs/${ORG}/teams/${TEAM_SLUG}/memberships/${MEMBER_USERNAME}")
+
+  TEAM_RESOURCE=${TERRAFORM_TEAM_RESOURCE_NAME}
+  TERRAFORM_RESOURCE_NAME=$(echo "${member}" | jq -r '.login' | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
+
+  echo ">>> Converting ${MEMBER_USERNAME} to Terraform resource (teams/${TERRAFORM_TEAM_RESOURCE_NAME}.tf)..."
+
+  TERRAFORM_RESOURCE_NAME=${TERRAFORM_RESOURCE_NAME} \
+  TEAM_RESOURCE=${TEAM_RESOURCE} \
+  TEAM_MEMBERSHIP_USERNAME=${MEMBER_USERNAME} \
+  TEAM_MEMBERSHIP_ROLE=$(echo "${membership}" | jq -r '.role // "member"') \
+  envsubst < /opt/templates/github_team_membership.template >> "${TERRAFORM_TEAM_FILE}"
+  echo "terraform import -var-file=main.tfvars module.members.github_team_membership.${TERRAFORM_RESOURCE_NAME} ${TEAM_ID}:${MEMBER_USERNAME}" >> "${IMPORT_FILE}"
+done

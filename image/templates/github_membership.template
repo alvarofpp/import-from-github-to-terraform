@@ -1,0 +1,4 @@
+resource "github_membership" "${TERRAFORM_RESOURCE_NAME}" {
+  username = "${MEMBERSHIP_USERNAME}"
+  role     = "${MEMBERSHIP_ROLE}"
+}

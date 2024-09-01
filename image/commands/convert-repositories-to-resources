@@ -1,0 +1,58 @@
+#!/bin/bash
+if [[ "${DEBUG}" == "true" ]]; then
+  set -x
+fi
+
+ID=${ID:-''}
+ID_DIR="/tmp/logs/${ID}"
+REPOSITORIES_FILE="${ID_DIR}/repositories.json"
+IMPORT_FILE=/opt/resources/imports_repositories.txt
+
+if [ -f "${IMPORT_FILE}" ]; then
+  rm -f "${IMPORT_FILE}"
+fi
+
+jq -c '.[]' "${REPOSITORIES_FILE}" | while read -r repository; do
+  TERRAFORM_RESOURCE_NAME=$(echo "${repository}" | jq -r '.name' | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
+  REPOSITORY_NAME=$(echo "${repository}" | jq -r '.name')
+  OWNER_LOGIN=$(echo "${repository}" | jq -r '.owner.login' | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
+  REPOSITORY_DEFAULT_BRANCH=$(echo "${repository}" | jq -r '.default_branch')
+
+  if [[ ! ${TERRAFORM_RESOURCE_NAME:0:1} =~ ^[a-zA-Z]$ ]]; then
+    TERRAFORM_RESOURCE_NAME="${OWNER_LOGIN}_${TERRAFORM_RESOURCE_NAME}"
+  fi
+
+  echo ">> Converting ${REPOSITORY_NAME} repository to Terraform resource (repositories/${TERRAFORM_RESOURCE_NAME}.tf)..."
+
+  TERRAFORM_RESOURCE_NAME=${TERRAFORM_RESOURCE_NAME} \
+  REPOSITORY_NAME=${REPOSITORY_NAME} \
+  REPOSITORY_DESCRIPTION=$(echo "${repository}" | jq '.description // ""') \
+  REPOSITORY_HOMEPAGE_URL=$(echo "${repository}" | jq -r '.homepage // empty') \
+  REPOSITORY_VISIBILITY=$(echo "${repository}" | jq -r '.visibility // "all"') \
+  REPOSITORY_HAS_ISSUES=$(echo "${repository}" | jq -r '.has_issues // true') \
+  REPOSITORY_HAS_DISCUSSIONS=$(echo "${repository}" | jq -r '.has_discussions // false') \
+  REPOSITORY_HAS_PROJECTS=$(echo "${repository}" | jq -r '.has_projects // true') \
+  REPOSITORY_HAS_WIKI=$(echo "${repository}" | jq -r '.has_wiki // true') \
+  REPOSITORY_IS_TEMPLATE=$(echo "${repository}" | jq -r '.is_template // false') \
+  REPOSITORY_ALLOW_MERGE_COMMIT=$(echo "${repository}" | jq -r '.allow_merge_commit // true') \
+  REPOSITORY_ALLOW_SQUASH_MERGE=$(echo "${repository}" | jq -r '.allow_squash_merge // true') \
+  REPOSITORY_ALLOW_REBASE_MERGE=$(echo "${repository}" | jq -r '.allow_rebase_merge // true') \
+  REPOSITORY_ALLOW_AUTO_MERGE=$(echo "${repository}" | jq -r '.allow_auto_merge // false') \
+  REPOSITORY_SQUASH_MERGE_COMMIT_TITLE=$(echo "${repository}" | jq -r '.squash_merge_commit_title // "PR_TITLE"') \
+  REPOSITORY_SQUASH_MERGE_COMMIT_MESSAGE=$(echo "${repository}" | jq -r '.squash_merge_commit_message // "COMMIT_MESSAGES"') \
+  REPOSITORY_MERGE_COMMIT_TITLE=$(echo "${repository}" | jq -r '.merge_commit_title // "PR_TITLE"') \
+  REPOSITORY_MERGE_COMMIT_MESSAGE=$(echo "${repository}" | jq -r '.merge_commit_message // "PR_BODY"') \
+  REPOSITORY_DELETE_BRANCH_ON_MERGE=$(echo "${repository}" | jq -r '.delete_branch_on_merge // false') \
+  REPOSITORY_WEB_COMMIT_SIGNOFF_REQUIRED=$(echo "${repository}" | jq -r '.web_commit_signoff_required // false') \
+  REPOSITORY_HAS_DOWNLOADS=$(echo "${repository}" | jq -r '.has_downloads // true') \
+  REPOSITORY_DEFAULT_BRANCH=${REPOSITORY_DEFAULT_BRANCH} \
+  REPOSITORY_ARCHIVED=$(echo "${repository}" | jq -r '.archived // false') \
+  REPOSITORY_TOPICS=$(echo "${repository}" | jq -r '.topics') \
+  envsubst < /opt/templates/github_repository.template > /opt/resources/repositories/"${TERRAFORM_RESOURCE_NAME}".tf
+
+  {
+    echo "terraform import -var-file=main.tfvars module.repositories.github_repository.${TERRAFORM_RESOURCE_NAME} ${REPOSITORY_NAME}"
+    echo "terraform import -var-file=main.tfvars module.repositories.github_branch.${TERRAFORM_RESOURCE_NAME}_branch_${REPOSITORY_DEFAULT_BRANCH} ${REPOSITORY_NAME}:${REPOSITORY_DEFAULT_BRANCH}"
+    echo "terraform import -var-file=main.tfvars module.repositories.github_branch_default.${TERRAFORM_RESOURCE_NAME}_branch_default ${REPOSITORY_NAME}"
+  } >> "${IMPORT_FILE}"
+done
