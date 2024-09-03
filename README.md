@@ -37,7 +37,7 @@ export GITHUB_ACCESS_TOKEN=github_pat_...
 2. Run:
 
 ```shell
-import-my-repos
+make import-my-repos
 ```
 
 ### Importing an organization
@@ -57,7 +57,7 @@ export ORG=...
 3. Run:
 
 ```shell
-import-org
+make import-org
 ```
 
 [template-infra]: https://github.com/alvarofpp/template-infra
