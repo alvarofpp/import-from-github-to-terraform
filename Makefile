@@ -41,6 +41,7 @@ shell:
 	    --volume ./image/commands:/opt/commands \
 	    --volume ./image/templates:/opt/templates \
 	    --env GITHUB_ACCESS_TOKEN="${GITHUB_ACCESS_TOKEN}" \
+	    --env ORG="${ORG}" \
 	    ${DOCKER_IMAGE} bash
 
 .PHONY: import-my-repos
