@@ -17,16 +17,17 @@ fi
 
 jq -c '.[]' "${TEAMS_FILE}" | while read -r team; do
   TEAM_NAME=$(echo "${team}" | jq -r '.name')
+  TEAM_SLUG=$(echo "${team}" | jq -r '.slug')
   TEAM_ID=$(echo "${team}" | jq -r '.id')
   TEAM_SLUG=$(echo "${team}" | jq -r '.slug')
-  TERRAFORM_RESOURCE_NAME=$(echo "${TEAM_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
+  TERRAFORM_RESOURCE_NAME=$(echo "${TEAM_SLUG}" | tr '[:upper:]' '[:lower:]' | sed 's/[-\.]/_/g')
   TERRAFORM_TEAM_FILE=/opt/resources/teams/"${TERRAFORM_RESOURCE_NAME}".tf
 
   team=$(curl -sSL \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: Bearer ${GITHUB_ACCESS_TOKEN}" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    "${API_URL_PREFIX}/orgs/${ORG}/teams/${TEAM_NAME}")
+    "${API_URL_PREFIX}/orgs/${ORG}/teams/${TEAM_SLUG}")
 
   echo ">> Converting ${TEAM_NAME} team to Terraform resource (teams/${TERRAFORM_RESOURCE_NAME}.tf)..."
 
