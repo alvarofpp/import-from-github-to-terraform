@@ -30,5 +30,10 @@ while [ "$has_more" = true ]; do
   fi
 done
 
-jq -s '.[]' "${ID_DIR}"/teams/*.json > "${ID_DIR}/teams.json"
-ID=${ID} ORG=${ORG} GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN} convert-teams-to-resources
+if [ -n "$(find "${ID_DIR}"/teams/ -name '*.json' 2>/dev/null)" ]
+then
+  jq -s '.[]' "${ID_DIR}"/teams/*.json > "${ID_DIR}/teams.json"
+  ID=${ID} ORG=${ORG} GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN} convert-teams-to-resources
+else
+  echo "The organization has no teams."
+fi

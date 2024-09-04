@@ -34,5 +34,10 @@ while [ "$has_more" = true ]; do
   fi
 done
 
-jq -s '.[]' "${ID_DIR}"/repositories/*.json > "${ID_DIR}/repositories.json"
-ID=${ID} convert-repositories-to-resources
+if [ -n "$(find "${ID_DIR}"/repositories/ -name '*.json' 2>/dev/null)" ]
+then
+  jq -s '.[]' "${ID_DIR}"/repositories/*.json > "${ID_DIR}/repositories.json"
+  ID=${ID} convert-repositories-to-resources
+else
+  echo "The organization has no repositories."
+fi
