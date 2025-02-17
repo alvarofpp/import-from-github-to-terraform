@@ -9,7 +9,7 @@ and saved in the `resources/`:
 - `import_*.txt`: files with commands for importing resources.
 - `members/*.tf`, `repositories/*.tf` and `teams/*.tf`: Terraform resource files.
 
-The [alvarofpp/template-infra][template-infra] repository has a directory structure
+The [alvarofpp/template-infra-terraform][template-infra] repository has a directory structure
 that you can use as a basis.
 
 ## How to use
@@ -60,4 +60,4 @@ export ORG=...
 make import-org
 ```
 
-[template-infra]: https://github.com/alvarofpp/template-infra
+[template-infra]: https://github.com/alvarofpp/template-infra-terraform
